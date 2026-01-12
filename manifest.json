@@ -1,0 +1,23 @@
+{
+    "manifest_version": 3,
+    "name": "Cat New Tab",
+    "version": "1.0",
+    "description": "Start each tab with a new cat photo and stay organized.",
+    "author": "Nane K",
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": "cat-icon.png"
+    },
+    "permissions": ["storage"],
+    "host_permissions": ["https://pixabay.com/*"],
+    "chrome_url_overrides" : {
+        "newtab": "index.html"
+    },
+    "icons": {
+        "16": "cat-icon.png",
+        "32": "cat-icon.png",
+        "48": "cat-icon.png",
+        "128": "cat-icon.png"
+    }
+
+}
