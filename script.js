@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const backgroundContainer = document.getElementById('background-container');
   const timeSearchContainer = document.getElementById('time-search-container');
   const timeText = document.getElementById('time-text');
-
   const searchContainer = document.createElement('div'); // Container for input + icon
   const searchInput = document.createElement('input');    // Search input element
   const searchIcon = document.getElementById('search-icon');       // Search icon
@@ -25,11 +24,45 @@ document.addEventListener('DOMContentLoaded', function () {
   // favorites 
 
   let currentImage = null;
+  const storageArea = (chrome.storage && chrome.storage.session) ? chrome.storage.session : chrome.storage.local;
 
   async function getFavorites() {
     return new Promise((resolve) => {
       chrome.storage.local.get(['favoriteCats'], (result) => {
         resolve(result.favoriteCats || []);
+      });
+    });
+  }
+
+  let currentTabId = null;
+
+  async function getCurrentTabId() {
+    return new Promise((resolve) => {
+      chrome.tabs.getCurrent((tab) => {
+        resolve(tab?.id ?? null);
+      });
+    });
+  }
+
+  async function getSelectedWallpaper(tabId) {
+    return new Promise((resolve) => {
+      storageArea.get(['selectedByTab'], (result) => {
+        const map = result.selectedByTab || {};
+        resolve(tabId && map[tabId] ? map[tabId] : null);
+      });
+    });
+  }
+
+  async function clearSelectedWallpaper(tabId) {
+    return new Promise((resolve) => {
+      storageArea.get(['selectedByTab'], (result) => {
+        const map = result.selectedByTab || {};
+        if (tabId && map[tabId]) {
+          delete map[tabId];
+          storageArea.set({ selectedByTab: map }, () => resolve());
+        } else {
+          resolve();
+        }
       });
     });
   }
@@ -44,7 +77,15 @@ document.addEventListener('DOMContentLoaded', function () {
         return false;
       }
 
-      favorites.push(image);
+      const normalized = {
+        id: image.id,
+        user: image.user || "",
+        preview: image.preview || image.medium || image.large || "",
+        medium: image.medium || image.preview || image.large || "",
+        large: image.large || image.medium || image.preview || ""
+      };
+
+      favorites.push(normalized);
       
       return new Promise((resolve) => {
         chrome.storage.local.set({ favoriteCats: favorites }, () => {
@@ -132,15 +173,110 @@ document.addEventListener('DOMContentLoaded', function () {
 
   };
 
+  async function fetchImageById(id) {
+    try {
+      const params = new URLSearchParams();
+      params.set('key', API_KEY);
+      params.set('id', String(id));
+      const response = await fetch(`https://pixabay.com/api/?${params}`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      const data = await response.json();
+      if (!data.hits || data.hits.length === 0) return null;
+      const hit = data.hits[0];
+      return {
+        preview: hit.previewURL,
+        medium: hit.webformatURL,
+        large: hit.largeImageURL,
+        id: hit.id,
+        user: hit.user
+      };
+    } catch (error) {
+      console.error('Error fetching image by id:', error);
+      return null;
+    }
+  }
+
+  async function updateFavorite(image) {
+    try {
+      const favorites = await getFavorites();
+      const updated = favorites.map((fav) => (fav.id === image.id ? { ...fav, ...image } : fav));
+      chrome.storage.local.set({ favoriteCats: updated }, () => {});
+    } catch (error) {
+      console.error('Error updating favorite:', error);
+    }
+  }
+
+  async function applyImage(image) {
+    if (!image) return;
+
+    const normalized = {
+      ...image,
+      preview: image.preview || image.medium || image.large || "",
+      medium: image.medium || image.preview || image.large || "",
+      large: image.large || image.medium || image.preview || ""
+    };
+
+    currentImage = normalized;
+    const isFav = await isFavorited(currentImage.id);
+    updateLikeButton(isFav);
+
+    backgroundContainer.style.transition = 'none';
+    backgroundContainer.style.filter = 'blur(5px)';
+    backgroundContainer.style.transform = 'scale(1.15)';
+    backgroundContainer.offsetHeight;
+    backgroundContainer.style.transition = 'filter 0.8s ease-out';
+
+    if (currentImage.preview) {
+      backgroundContainer.style.backgroundImage = `url('${currentImage.preview}')`;
+    } else if (currentImage.medium) {
+      backgroundContainer.style.backgroundImage = `url('${currentImage.medium}')`;
+    }
+
+    if (currentImage.large) {
+      const highQualityImg = new Image();
+      highQualityImg.src = currentImage.large;
+      highQualityImg.onload = function () {
+        backgroundContainer.style.backgroundImage = `url('${currentImage.large}')`;
+        backgroundContainer.style.filter = 'blur(0px)';
+      };
+      highQualityImg.onerror = async function () {
+        // Attempt to refresh stale URLs for older favorites.
+        if (currentImage.id) {
+          const refreshed = await fetchImageById(currentImage.id);
+          if (refreshed?.large) {
+            const merged = { ...currentImage, ...refreshed };
+            await updateFavorite(merged);
+            const retryImg = new Image();
+            retryImg.src = merged.large;
+            retryImg.onload = function () {
+              backgroundContainer.style.backgroundImage = `url('${merged.large}')`;
+              backgroundContainer.style.filter = 'blur(0px)';
+            };
+            retryImg.onerror = function () {
+              backgroundContainer.style.filter = 'blur(0px)';
+            };
+            return;
+          }
+        }
+        backgroundContainer.style.filter = 'blur(0px)';
+      };
+    }
+  }
 
 
   async function setBgImg() {
 
     try {
-      backgroundContainer.style.filter = 'blur(5px)';
-      backgroundContainer.style.transform = 'scale(1.15)';
-      backgroundContainer.style.transition = 'filter 0.8s ease-out';
-      backgroundContainer.offsetHeight;
+      const selected = await getSelectedWallpaper(currentTabId);
+      if (selected) {
+        await applyImage(selected);
+        if (currentTabId) {
+          await clearSelectedWallpaper(currentTabId);
+        }
+        return;
+      }
       
       var imageUrls = await getCatPics(); 
 
@@ -154,23 +290,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // loading blur and then wait until loaded 
       const selectedImage = imageUrls[randomIndex];
-      currentImage = selectedImage;
-      const isFav = await isFavorited(currentImage.id);
-      updateLikeButton(isFav);
-      // Step 1: Show preview instantly (blurred)
-      
-      backgroundContainer.style.backgroundImage = `url('${selectedImage.preview}')`;
-  
-
-      // Step 2: Load high quality in background
-      const highQualityImg = new Image();
-      highQualityImg.src = selectedImage.large;
-
-      highQualityImg.onload = function () {
-        // Swap to high quality and remove blur
-        backgroundContainer.style.backgroundImage = `url('${selectedImage.large}')`;
-        backgroundContainer.style.filter = 'blur(0px)';
-      }
+      await applyImage(selectedImage);
 
     }
 
@@ -182,7 +302,10 @@ document.addEventListener('DOMContentLoaded', function () {
     
   }
   
-  setBgImg();
+  (async () => {
+    currentTabId = await getCurrentTabId();
+    await setBgImg();
+  })();
   timeText.style.color = 'white';
 
 
@@ -298,6 +421,20 @@ document.addEventListener('DOMContentLoaded', function () {
       const saved = await saveFavorite(currentImage);
       if (saved) {
         this.classList.add("active");
+      }
+    }
+  });
+
+  chrome.storage.onChanged.addListener(async (changes, areaName) => {
+    if (areaName !== 'session' && areaName !== 'local') return;
+    if (!currentTabId) return;
+
+    if (changes.selectedByTab) {
+      const newMap = changes.selectedByTab.newValue || {};
+      const newImage = newMap[currentTabId] || null;
+      if (newImage) {
+        await applyImage(newImage);
+        await clearSelectedWallpaper(currentTabId);
       }
     }
   });

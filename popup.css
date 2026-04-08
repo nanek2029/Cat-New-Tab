@@ -1,0 +1,147 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Alexandria", sans-serif;
+  background: #f6f2ef;
+  color: #2a2420;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.popup {
+  width: 360px;
+  max-height: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-right: 6px;
+  padding: 14px 14px 12px;
+  border-radius: 20px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #9b325c;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: #b7758a;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 2px;
+  max-height: 420px;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid transparent;
+}
+
+.card.selected {
+  border-color: #ff7aa2;
+  box-shadow: 0 4px 12px rgba(255, 122, 162, 0.25);
+}
+
+.thumb {
+  width: 72px;
+  height: 52px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  background-color: #eedee4;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.meta-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9b325c;
+  font-family: "Alexandria", sans-serif;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  border: none;
+  background: #9b325c;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-family: "Alexandria", sans-serif;
+}
+
+.btn:hover {
+  background: rgb(59, 21, 30);
+}
+
+.tag {
+  font-size: 10px;
+  color: #ff477e;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.empty {
+  font-size: 12px;
+  color: #6a5d55;
+  background: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: 0 8px 8px rgba(74, 72, 72, 0.295);
+}
+
+.status {
+  font-size: 11px;
+  color: #3a312c;
+  background: #fff7fb;
+  border: 1px solid #ffd3e3;
+  padding: 6px 10px;
+  border-radius: 999px;
+  align-self: flex-start;
+}
+
+.hidden {
+  display: none;
+}
