@@ -7,4 +7,4 @@ What the regular tab looks like:
 
 
 The favorites popup:
-<img width="721" height="550" alt="Screenshot 2026-04-08 175350" src="https://github.com/user-attachments/assets/57f8e0d4-c97e-4e5b-aaff-20948871e74d" />
+<img width="682" height="553" alt="image" src="https://github.com/user-attachments/assets/882a31bf-b80f-43e6-a03e-f1844bbea45e" />
