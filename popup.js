@@ -6,6 +6,15 @@ async function getFavorites() {
   });
 }
 
+async function removeFavorite(imageId) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["favoriteCats"], (result) => {
+      const favorites = (result.favoriteCats || []).filter((fav) => fav.id !== imageId);
+      chrome.storage.local.set({ favoriteCats: favorites }, () => resolve());
+    });
+  });
+}
+
 async function getActiveTabId() {
   return new Promise((resolve) => {
     chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
@@ -66,6 +75,13 @@ function createCard(image, isSelected) {
   const actions = document.createElement("div");
   actions.className = "actions";
 
+  const trash = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  trash.setAttribute("viewBox", "0 0 90 90");
+  trash.setAttribute("aria-label", "Remove favorite");
+  trash.setAttribute("role", "img");
+  trash.classList.add("favorite-trash");
+  trash.innerHTML = '<path d="M 72.002 10.915 H 17.998 c -3.134 0 -5.675 2.541 -5.675 5.675 v 7.049 h 65.354 V 16.59 C 77.677 13.456 75.136 10.915 72.002 10.915 z" transform="matrix(1 0 0 1 0 0)"/><path d="M 57.546 15.544 H 32.454 c -1.42 0 -2.571 -1.151 -2.571 -2.571 V 6.19 c 0 -3.413 2.777 -6.19 6.19 -6.19 h 17.854 c 3.413 0 6.191 2.777 6.191 6.19 v 6.782 C 60.117 14.392 58.966 15.544 57.546 15.544 z M 35.026 10.401 h 19.949 V 6.19 c 0 -0.578 -0.47 -1.047 -1.048 -1.047 H 36.073 c -0.578 0 -1.047 0.47 -1.047 1.047 V 10.401 z" transform="matrix(1 0 0 1 0 0)"/><path d="M 74.016 28.782 H 15.984 v 55.543 c 0 3.134 2.541 5.675 5.675 5.675 h 46.682 c 3.134 0 5.675 -2.541 5.675 -5.675 V 28.782 z" transform="matrix(1 0 0 1 0 0)"/><path d="M 31.915 79.328 c 0 1.42 -1.151 2.571 -2.571 2.571 c -1.42 0 -2.571 -1.151 -2.571 -2.571 V 41.509 c 0 -1.42 1.151 -2.571 2.571 -2.571 c 1.42 0 2.571 1.151 2.571 2.571 V 79.328 z" transform="matrix(1 0 0 1 0 0)" class="trash-can-detail"/><path d="M 47.571 79.328 c 0 1.42 -1.151 2.571 -2.571 2.571 s -2.571 -1.151 -2.571 -2.571 V 41.509 c 0 -1.42 1.151 -2.571 2.571 -2.571 s 2.571 1.151 2.571 2.571 V 79.328 z" transform="matrix(1 0 0 1 0 0)" class="trash-can-detail"/><path d="M 63.228 79.328 c 0 1.42 -1.151 2.571 -2.571 2.571 c -1.42 0 -2.571 -1.151 -2.571 -2.571 V 41.509 c 0 -1.42 1.151 -2.571 2.571 -2.571 c 1.42 0 2.571 1.151 2.571 2.571 V 79.328 z" transform="matrix(1 0 0 1 0 0)" class="trash-can-detail"/>';
+
   const button = document.createElement("button");
   button.className = "btn";
   button.textContent = "Set as wallpaper";
@@ -85,6 +101,7 @@ function createCard(image, isSelected) {
 
   card.appendChild(thumb);
   card.appendChild(meta);
+  card.appendChild(trash);
 
   return card;
 }
@@ -106,7 +123,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const empty = document.getElementById("empty-state");
 
   const tabId = await getActiveTabId();
-  const [favorites, selected] = await Promise.all([
+  let [favorites, selected] = await Promise.all([
     getFavorites(),
     getSelectedWallpaper(tabId)
   ]);
@@ -125,6 +142,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   list.addEventListener("click", async (event) => {
+    const trash = event.target.closest(".favorite-trash");
+    if (trash) {
+      const card = event.target.closest(".card");
+      if (!card) return;
+
+      const imageId = Number(card.dataset.imageId);
+      await removeFavorite(imageId);
+      favorites = favorites.filter((item) => item.id !== imageId);
+      card.remove();
+
+      if (!favorites.length) {
+        empty.classList.remove("hidden");
+      }
+      return;
+    }
+
     const button = event.target.closest(".btn");
     if (!button) return;
     const card = event.target.closest(".card");
