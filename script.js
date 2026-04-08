@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
       params.set('image_type', 'photo');
       params.set('orientation', 'horizontal');
       params.set('safesearch', 'true');
-      params.set('page', String(Math.floor(Math.random() * 2) + 1));
+      params.set('page', String(Math.floor(Math.random() * 4) + 1));
       params.set('per_page', '100');
       //params.set('editors_choice',true);
 
