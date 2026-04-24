@@ -1,4 +1,4 @@
-This is my Cat New Tab extension; all images are taken from the Pixabays database. 
+This is my Cat New Tab extension; all images are taken from the Pixabay database. 
 You can favorite wallpapers and then view them when you click on the popup--pin for easier access!
 Enjoy randomized cute cat wallpapers •ᴗ•
 
