@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ========= BACKGROUND IMAGES =========
 
-  const API_KEY = "53632271-fbaa470a55eb5593c7531f406";
+  const API_KEY = window.PIXABAY_CONFIG?.API_KEY || "";
 
 
   // favorites 
